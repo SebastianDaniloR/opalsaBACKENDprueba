@@ -1,10 +1,10 @@
-import  User from '../models/user.model.js'
-import bcrypt from 'bcryptjs'
+import User from '../models/user.model.js';
+import bcrypt from 'bcryptjs';
 import { createAccessToken } from '../libs/jwt.js';
 import jwt from 'jsonwebtoken';
 import { TOKEN_SECRET } from '../config.js';
 
-
+// Registro de usuario
 export const register = async (req, res) => {
   const { email, password, username, cedula, cargo, ciudad, role = 'user' } = req.body;
   try {
@@ -42,7 +42,12 @@ export const register = async (req, res) => {
     const token = await createAccessToken({ id: userSaved._id });
     console.log('Token creado:', token);
 
-    res.cookie("token", token);
+    // Configuración de la cookie
+    res.cookie("token", token, {
+      httpOnly: true, // Evita el acceso al token desde JavaScript
+      secure: process.env.NODE_ENV === 'production', // Solo enviar en HTTPS en producción
+      sameSite: 'None', // Permite el envío de cookies en diferentes dominios
+    });
 
     res.json({
       id: userSaved._id,
@@ -61,52 +66,64 @@ export const register = async (req, res) => {
   }
 };
 
+// Inicio de sesión
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const userFound = await User.findOne({ email });
+    if (!userFound) return res.status(400).json({ message: "user not found" });
 
-export const login = async (req,res) =>  {
-  const{email,password} = req.body;
-try {
-const userFound = await User.findOne({email})
-if(!userFound) return res.status(400).json({message: "user not found "});
+    const isMatch = await bcrypt.compare(password, userFound.password);
+    if (!isMatch) return res.status(400).json({ message: "incorrect password" });
 
-const isMatch = await bcrypt.compare(password,userFound.password) 
-if (!isMatch) return res.status(400).json({message:"incorrect password"});
-    const token = await createAccessToken({id:userFound._id})
-    res.cookie("token",token)
+    const token = await createAccessToken({ id: userFound._id });
+    
+    // Configuración de la cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'None',
+    });
+
     res.json({
-        id: userFound._id,
-        username: userFound.username,
-        email: userFound.email,
-        role: userFound.role,
-        createdAt: userFound.createdAt,
-        updateAt: userFound.updatedAt,
-})   
-} catch (error) {
-    res.status(500).json({message: error.message});
-}
+      id: userFound._id,
+      username: userFound.username,
+      email: userFound.email,
+      role: userFound.role,
+      createdAt: userFound.createdAt,
+      updatedAt: userFound.updatedAt,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
-export const logout = (req,res) =>{
-  res.cookie('token',"",{
+// Cierre de sesión
+export const logout = (req, res) => {
+  res.cookie('token', "", {
     expires: new Date(0)
   });
   return res.sendStatus(200);
 };
 
-export const profile = async (req, res) =>{
- const userFound = await User.findById(req.user.id)
- if(!userFound) return res.status(400).json({message:"user not found"});
- return res.json({
-        id: userFound._id,
-        username: userFound.username,
-        email: userFound.email,
-        cedula: userFound.cedula,
-        cargo: userFound.cargo,
-        ciudad: userFound.ciudad,
-        role:userFound.role,
-        createdAt: userFound.createdAt,
-        updateAt: userFound.updatedAt,
- })
+// Perfil de usuario
+export const profile = async (req, res) => {
+  const userFound = await User.findById(req.user.id);
+  if (!userFound) return res.status(400).json({ message: "user not found" });
+  return res.json({
+    id: userFound._id,
+    username: userFound.username,
+    email: userFound.email,
+    cedula: userFound.cedula,
+    cargo: userFound.cargo,
+    ciudad: userFound.ciudad,
+    role: userFound.role,
+    createdAt: userFound.createdAt,
+    updatedAt: userFound.updatedAt,
+  });
 };
+
+// Contar usuarios
 export const getUserCount = async (req, res) => {
   try {
     const userCount = await User.countDocuments();
@@ -116,7 +133,7 @@ export const getUserCount = async (req, res) => {
   }
 };
 
-
+// Verificar token
 export const verifyToken = async (req, res) => {
   try {
     const token = req.cookies.token;
