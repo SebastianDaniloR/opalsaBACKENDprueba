@@ -29,9 +29,12 @@ const __dirname = path.dirname(__filename);
 
 // Usar la variable de entorno para CORS
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173', // Fallback si no está definida
+  origin: process.env.CLIENT_URL,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH' ,'DELETE', 'OPTIONS'], // Agrega otros métodos si es necesario
+  allowedHeaders: ['Content-Type', 'Authorization'], // Especifica los encabezados permitidos
 }));
+
 
 app.use(morgan('dev'));
 app.use(express.json());
