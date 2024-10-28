@@ -85,7 +85,7 @@ export const getUltimos10Recordatorios = async (req, res) => {
       fechaRecordatorio: { $gte: fechaActual }  // Filtrar solo recordatorios con fecha futura o igual a hoy
     })
       .sort({ fechaRecordatorio: 1 })  // Ordenar por fecha más cercana
-      .limit(10)  // Limitar a los 10 más próximos
+      .limit(20)  // Limitar a los 10 más próximos
       .populate('usuario', 'username');  // Popular el usuario relacionado si es necesario
 
     res.status(200).json(recordatorios);
